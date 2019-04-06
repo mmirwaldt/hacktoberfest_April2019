@@ -78,7 +78,8 @@ public class SolveLabyrinth {
 
 	public static void main(String[] args) throws IOException,
 			InterruptedException {
-		BufferedImage img = ImageIO.read(SolveLabyrinth.class.getResourceAsStream("saved.png"));
+		BufferedImage img = ImageIO.read(SolveLabyrinth.class
+				.getResourceAsStream("saved.png"));
 
 		int widthInPositions = 74;
 		int heightInPositions = 39;
@@ -96,11 +97,15 @@ public class SolveLabyrinth {
 
 		setTarget(fieldWidth, fieldHeight, map);
 
-		int leftTopX = 16;
-		int leftTopY = 9;
+		Point leftTopCorner = findLeftTopCorner(img);
+		if (leftTopCorner.getX() == -1) {
+			throw new RuntimeException("Left top point not found!");
+		}
+
+		System.out.println("leftTop=" + leftTopCorner);
 
 		readNonCentralWalls(img, widthInPositions, heightInPositions, map,
-				leftTopX, leftTopY);
+				leftTopCorner);
 		System.out.println(Arrays.deepToString(map).replace("],", "],\n"));
 
 		List<Point> pathToEnd = findPath(map, new Point(1, 1),
@@ -108,7 +113,7 @@ public class SolveLabyrinth {
 				Arrays.asList(Direction.DOWN, Direction.RIGHT));
 		System.out.println(pathToEnd);
 
-		drawPath(img, leftTopX, leftTopY, pathToEnd);
+		drawPath(img, leftTopCorner, pathToEnd);
 
 		JFrame frame = new JFrame();
 		frame.getContentPane().add(new ImagePanel(img));
@@ -121,19 +126,31 @@ public class SolveLabyrinth {
 
 	}
 
-	private static void drawPath(BufferedImage img, int leftTopX, int leftTopY,
+	private static Point findLeftTopCorner(BufferedImage img) {
+		for (int y = 0; y < 100; y++) {
+			for (int x = 0; x < 100; x++) {
+				if ((new Color(img.getRGB(x, y)).equals(Color.WHITE))) {
+					return new Point(x, y);
+				}
+
+			}
+		}
+		return new Point(-1, -1);
+	}
+
+	private static void drawPath(BufferedImage img, Point leftTopCorner,
 			List<Point> pathToEnd) {
 		Graphics g = img.getGraphics();
 		g.setColor(Color.YELLOW);
 
 		Point previousPoint = pathToEnd.get(0);
 		for (Point point : pathToEnd.subList(1, pathToEnd.size())) {
-			int startPositionX = leftTopX + (previousPoint.getX() / 2 + 1) * 18
-					- 8;
-			int startPositionY = leftTopY + (previousPoint.getY() / 2 + 1) * 18
-					- 8;
-			int endPositionX = leftTopX + (point.getX() / 2 + 1) * 18 - 8;
-			int endPositionY = leftTopY + (point.getY() / 2 + 1) * 18 - 8;
+			int startPositionX = leftTopCorner.getX()
+					+ (previousPoint.getX() / 2 + 1) * 18 - 8;
+			int startPositionY = leftTopCorner.getY()
+					+ (previousPoint.getY() / 2 + 1) * 18 - 8;
+			int endPositionX = leftTopCorner.getX() + (point.getX() / 2 + 1) * 18 - 8;
+			int endPositionY = leftTopCorner.getY() + (point.getY() / 2 + 1) * 18 - 8;
 
 			g.drawLine(startPositionX, startPositionY, endPositionX,
 					endPositionY);
@@ -144,11 +161,11 @@ public class SolveLabyrinth {
 
 	private static void readNonCentralWalls(BufferedImage img,
 			int widthInPositions, int heightInPositions, Field[][] map,
-			int leftTopX, int leftTopY) {
+			Point leftTopCorner) {
 		for (int wallPositionX = 1; wallPositionX <= widthInPositions; wallPositionX++) {
 			for (int wallPositionY = 1; wallPositionY <= heightInPositions; wallPositionY++) {
-				int pixelPositionX = leftTopX + wallPositionX * 18;
-				int pixelPositionY = leftTopY + wallPositionY * 18;
+				int pixelPositionX = leftTopCorner.getX() + wallPositionX * 18;
+				int pixelPositionY = leftTopCorner.getY() + wallPositionY * 18;
 
 				int leftFieldX = 2 * wallPositionX - 1;
 				int leftFieldY = 2 * wallPositionY;
