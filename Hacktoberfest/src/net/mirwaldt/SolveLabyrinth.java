@@ -227,9 +227,9 @@ public class SolveLabyrinth {
 			List<Point> positions, List<Direction> directions) {
 		List<Point> newPosition = new ArrayList<>(positions);
 		if (2 <= newPosition.size()) {
-			Point first = newPosition.get(newPosition.size() - 2);
+			Point morePrevíous = newPosition.get(newPosition.size() - 2);
 			Point previous = newPosition.get(newPosition.size() - 1);
-			if (isPreviousTransitive(currentPosition, first, previous)) {
+			if (isPreviousTransitive(currentPosition, morePrevíous, previous)) {
 				newPosition.remove(newPosition.size() - 1);
 			}
 		}
