@@ -5,16 +5,15 @@ import java.awt.Graphics;
 import java.awt.image.BufferedImage;
 import java.awt.image.ImageObserver;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import javax.imageio.ImageIO;
-import javax.swing.JFrame;
 import javax.swing.JPanel;
 
-public class SolveLabyrinth {
+public class SolveMaze {
 
 	static enum Field {
 		FREE, WALL, END
@@ -74,56 +73,6 @@ public class SolveLabyrinth {
 				return LEFT;
 			}
 		}
-	}
-
-	public static void main(String[] args) throws IOException,
-			InterruptedException {
-		BufferedImage img = ImageIO.read(SolveLabyrinth.class
-				.getResourceAsStream("saved.png"));
-
-		int widthInPositions = 74;
-		int heightInPositions = 39;
-
-		int fieldWidth = 2 * widthInPositions + 1;
-		int fieldHeight = 2 * heightInPositions + 1;
-
-		Field[][] map = new Field[fieldHeight][fieldWidth];
-
-		createBorder(fieldWidth, fieldHeight, map);
-
-		setCentralFreeFields(fieldWidth, fieldHeight, map);
-
-		setCentralWalls(fieldWidth, fieldHeight, map);
-
-		setTarget(fieldWidth, fieldHeight, map);
-
-		Point leftTopCorner = findLeftTopCorner(img);
-		if (leftTopCorner.getX() == -1) {
-			throw new RuntimeException("Left top point not found!");
-		}
-
-		System.out.println("leftTop=" + leftTopCorner);
-
-		readNonCentralWalls(img, widthInPositions, heightInPositions, map,
-				leftTopCorner);
-		System.out.println(Arrays.deepToString(map).replace("],", "],\n"));
-
-		List<Point> pathToEnd = findPath(map, new Point(1, 1),
-				new ArrayList<>(),
-				Arrays.asList(Direction.DOWN, Direction.RIGHT));
-		System.out.println(pathToEnd);
-
-		drawPath(img, leftTopCorner, pathToEnd);
-
-		JFrame frame = new JFrame();
-		frame.getContentPane().add(new ImagePanel(img));
-
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		frame.setSize(img.getWidth() + 100, img.getHeight() + 100);
-		frame.setVisible(true);
-
-		Thread.sleep(1000000);
-
 	}
 
 	private static Point findLeftTopCorner(BufferedImage img) {
@@ -274,8 +223,66 @@ public class SolveLabyrinth {
 		}
 
 		public void paint(Graphics g) {
-			g.drawImage(img, 10, 10, (ImageObserver) this);
+			g.drawImage(img, 0, 0, (ImageObserver) this);
 
+		}
+	}
+	
+	public static void drawPathIntoMaze(BufferedImage img, OutputStreamWriter outputStreamWriter) 
+			throws IOException {
+		int widthInPositions = 74;
+		int heightInPositions = 39;
+
+		int fieldWidth = 2 * widthInPositions + 1;
+		int fieldHeight = 2 * heightInPositions + 1;
+
+		Field[][] map = new Field[fieldHeight][fieldWidth];
+
+		createBorder(fieldWidth, fieldHeight, map);
+
+		setCentralFreeFields(fieldWidth, fieldHeight, map);
+
+		setCentralWalls(fieldWidth, fieldHeight, map);
+
+		setTarget(fieldWidth, fieldHeight, map);
+
+		Point leftTopCorner = findLeftTopCorner(img);
+		if (leftTopCorner.getX() == -1) {
+			throw new RuntimeException("Left top point not found!");
+		}
+		System.out.println("leftTop=" + leftTopCorner);
+
+		readNonCentralWalls(img, widthInPositions, heightInPositions, map,
+				leftTopCorner);
+		System.out.println(Arrays.deepToString(map).replace("],", "],\n"));
+
+		List<Point> pathToEnd = findPath(map, new Point(1, 1),
+				new ArrayList<>(),
+				Arrays.asList(Direction.DOWN, Direction.RIGHT));
+		System.out.println(pathToEnd);
+		
+		Color color = Color.YELLOW;
+		String colorAsHexString = String.format("%02x%02x%02x", color.getRed(), color.getGreen(), color.getBlue());
+		
+		Point previousPoint = pathToEnd.get(0);
+		for (Point point : pathToEnd.subList(1, pathToEnd.size())) {
+			int startPositionX = leftTopCorner.getX()
+					+ (previousPoint.getX() / 2 + 1) * 18 - 8;
+			int startPositionY = leftTopCorner.getY()
+					+ (previousPoint.getY() / 2 + 1) * 18 - 8;
+			int endPositionX = leftTopCorner.getX() + (point.getX() / 2 + 1) * 18 - 8;
+			int endPositionY = leftTopCorner.getY() + (point.getY() / 2 + 1) * 18 - 8;
+
+			
+			StringBuilder stringBuilder = new StringBuilder();
+			for (int x = Math.min(startPositionX, endPositionX); x <= Math.max(startPositionX, endPositionX); x++) {
+				for (int y = Math.min(startPositionY, endPositionY); y <= Math.max(startPositionY, endPositionY); y++) {
+					stringBuilder.append("PX " + x + " "+ y + " " + colorAsHexString + "\n");
+				}
+			}
+			outputStreamWriter.write(stringBuilder.toString());
+			outputStreamWriter.flush();
+			previousPoint = point;
 		}
 	}
 }

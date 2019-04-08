@@ -1,29 +1,22 @@
 package net.mirwaldt;
 
 import java.awt.Color;
-import java.awt.Graphics;
-import java.awt.Image;
 import java.awt.image.BufferedImage;
-import java.awt.image.ImageObserver;
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
 
-import javax.imageio.ImageIO;
-import javax.swing.JFrame;
-import javax.swing.JPanel;
-
-public class TestServer {
+public class PixelClient {
 	public static void main(String[] args) throws UnknownHostException,
 			IOException, InterruptedException {
-		Socket socket = new Socket("10.201.77.102", 1234);
+		Socket socket = new Socket(InetAddress.getLocalHost(), 1234);
 		OutputStreamWriter writer = new OutputStreamWriter(
 				new BufferedOutputStream(socket.getOutputStream()));
-		writer.write("SIZE");
+		writer.write("SIZE\n");
 		writer.flush();
 
 		DataInputStream dataInputStream = new DataInputStream(
@@ -32,17 +25,19 @@ public class TestServer {
 		int width = Integer.parseInt(sizeReply[1]);
 		int height = Integer.parseInt(sizeReply[2]);
 
-		int myWidth = width / 3;
+		System.out.println(width);
+		
+		int myWidth = width / 2;
 		int myHeight = height / 3;
 
-		int startX = 2 * myWidth;
-		int startY = 1 * myHeight;
+		int startX = 0 * myWidth;
+		int startY = 2 * myHeight;
 
 		int endX = startX + myWidth;
 		int endY = startY + myHeight;
 
-		int windowWidth = myWidth / 2;
-		int windowHeight = myHeight / 2;
+		int windowWidth = myWidth;
+		int windowHeight = myHeight;
 
 		int leftTopStartX = startX;
 		int leftTopStartY = startY;
@@ -85,14 +80,15 @@ public class TestServer {
 		// writer.flush();
 		// }
 
-		int sourceStartX = myWidth;
-		int sourceStartY = myHeight;
+		int sourceStartX = 0;
+		int sourceStartY = 0;
 
-		int sourceEndX = sourceStartX + myWidth;
-		int sourceEndY = sourceStartY + myHeight;
+		int sourceEndX = width;
+		int sourceEndY = 2 * myHeight;
 
-		Color[][] colors = new Color[myWidth][myHeight];
-
+		BufferedImage bufferedImage = new BufferedImage(width, 2 * myHeight,
+				BufferedImage.TYPE_INT_RGB);
+		
 		for (int x = sourceStartX; x < sourceEndX; x++) {
 			StringBuilder stringBuilder = new StringBuilder();
 			for (int y = sourceStartY; y < sourceEndY; y++) {
@@ -104,22 +100,17 @@ public class TestServer {
 
 			for (int y = sourceStartY; y < sourceEndY; y++) {
 				String[] pixelReply = dataInputStream.readLine().split(" ");
-				String color = pixelReply[3];
-				colors[x - sourceStartX][y - sourceStartY] = new Color(
-						Integer.valueOf(color.substring(0, 2), 16),
-						Integer.valueOf(color.substring(2, 4), 16),
-						Integer.valueOf(color.substring(4, 6), 16));
+				String colorAsString = pixelReply[3];
+				Color color = new Color(
+						Integer.valueOf(colorAsString.substring(0, 2), 16),
+						Integer.valueOf(colorAsString.substring(2, 4), 16),
+						Integer.valueOf(colorAsString.substring(4, 6), 16));
+				bufferedImage.setRGB(x, y, color.getRGB());
 			}
 		}
 
-		JFrame frame = new JFrame();
-		frame.getContentPane().add(new ImagePanel(myWidth, myHeight, colors));
-
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		frame.setSize(myWidth + 100, myHeight + 100);
-		frame.setVisible(true);
-
-		Thread.sleep(1000000);
+		SolveMaze.drawPathIntoMaze(bufferedImage, writer);
+		
 	}
 
 	public static void rgb(float c, int[] rgb) {
@@ -147,44 +138,6 @@ public class TestServer {
 			rgb[0] = 255;
 			rgb[1] = 0;
 			rgb[2] = (int) (255 - ((c - (5 / 6f)) * 1530));
-		}
-	}
-
-	static class ImagePanel extends JPanel {
-		int width;
-		int weight;
-		Color[][] colors;
-
-		public ImagePanel(int width, int weight, Color[][] colors) {
-			super();
-			this.width = width;
-			this.weight = weight;
-			this.colors = colors;
-		}
-
-		public void paint(Graphics g) {
-			Image img = createImage();
-			g.drawImage(img, 20, 20, (ImageObserver) this);
-
-		}
-
-		private Image createImage() {
-			BufferedImage bufferedImage = new BufferedImage(width, weight,
-					BufferedImage.TYPE_INT_RGB);
-			for (int x = 0; x < width; x++) {
-				for (int y = 0; y < weight; y++) {
-					bufferedImage.setRGB(x, y, colors[x][y].getRGB());
-				}
-			}
-
-			File outputfile = new File("D:\\saved2.png");
-			try {
-				ImageIO.write(bufferedImage, "png", outputfile);
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			return bufferedImage;
 		}
 	}
 }
